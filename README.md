@@ -1,5 +1,7 @@
 # elastica-rl
 
+The aim of this project is to use reinforcement learning algorithms in order to investigate mechanics of soft filament applications.
+
 ## Installation 
 [![PyPI version](https://badge.fury.io/py/PyElastica.svg)](https://badge.fury.io/py/PyElastica)
 
