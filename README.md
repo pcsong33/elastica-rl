@@ -1,6 +1,7 @@
 # elastica-rl
 
-The aim of this project is to use reinforcement learning algorithms in order to investigate mechanics of soft filament applications.
+The aim of this project is to use reinforcement learning algorithms in order to investigate mechanics of soft filament applications. The project makes use of the PyElastica Python library developed by the Gazzola Lab (http://mattia-lab.com/) at the University of Illinois at Urbana-Champaign. Documentation of PyElastica is available at [docs.cosseratrods.org](https://docs.cosseratrods.org/).
+
 
 ## Installation 
 [![PyPI version](https://badge.fury.io/py/PyElastica.svg)](https://badge.fury.io/py/PyElastica)
