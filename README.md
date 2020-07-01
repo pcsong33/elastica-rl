@@ -10,7 +10,4 @@ PyElastica is compatible with Python 3.5 - 3.8. The easiest way to install PyEla
 ~~~bash
 $ pip install pyelastica 
 ~~~
-Reinforcement Learning will be implemented using OpenAI Gym. The Gym library is compatible with Python 3.5 - 3.8.
-~~~bash
-$ pip install gym 
-~~~
+
