@@ -8,7 +8,7 @@ from elastica.wrappers import BaseSystemCollection, Constraints, Forcing, CallBa
 """System conditions (i.e rods and boundary conditions)"""
 from elastica.rod.cosserat_rod import CosseratRod
 from elastica.boundary_conditions import OneEndFixedRod
-from elastica.joint import FreeJoint, HingeJoint
+from elastica.joint import FreeJoint, HingeJoint, FixedJoint
 from elastica.external_forces import GravityForces, UniformForces, EndpointForces, UniformTorques, TorqueInterval
 
 """Call back functions - for saving state information during simulation"""
@@ -18,78 +18,104 @@ from elastica.callback_functions import CallBackBaseClass
 from elastica.timestepper.symplectic_steppers import PositionVerlet
 from elastica.timestepper import integrate
 
-from post_processing import plot_video_3D
+from post_processing_joint import plot_video_3D
 
 """Combine all of the wrappers"""
 class Simulator(BaseSystemCollection, Constraints, Forcing, CallBacks, Connections): 
     pass 
 
 """Initializes simulator"""
-simulator = Simulator()
-
-
-"""Rod parameter setup: Rubber Rod"""
-# n_elem = 100                            # Number of elements in rod
-# density = 500                           # Density of rod (kg/m^3)
-# nu = 0.1                                # Energy Dissipation of Rod
-# E = 1e6                                 # Elastic Modulus (Pa)
-
-# start = np.zeros((3,))                  # Starting position of first node in rod            
-# direction = np.array([1.0, 0.0, 0.0])   # Direction the rod extends
-# normal = np.array([0.0, 1.0, 0.0])      # Normal vector of rod
-
-# base_length = 1.0                       # Length of rod (m) 
-# base_radius = 0.025                     # Radius of rod (m)
-
-# youngs = 0.05                           # Stiffness of rod
-# poisson_ratio = 0.47                    # Expansion or contraction of a material
-
+hinge_simulator = Simulator()
 
 """Rod parameter setup: Steel Rod"""
 n_elem = 100                            
-density = 150                        
-nu = 0.25                                
-E = 1e6                               
+density_1 = 150                          
+nu = 0.1                                
+E = 1e6                                 
 
-start = np.zeros((3,))                            
+start_1 = np.zeros((3,))                            
 direction = np.array([1.0, 0.0, 0.0])   
 normal = np.array([0.0, 0.0, 1.0])      
+roll_direction = np.cross(direction, normal)
 
-base_length = 1.0                       
+base_length_1 = 1.0                      
 base_radius = 0.025                    
-youngs = 10                            
-poisson_ratio = .56                    
+youngs_1 = 1                            
+poisson_ratio_1 = .28                     
 
+
+"""Rod parameter setup: Rubber Rod"""
+n_elem = 100                            
+density_2 = 500                           
+nu = 0.1                                
+E = 1e6                                 
+
+start_2 = start_1 + direction * base_length_1                  
+direction = np.array([1.0, 0.0, 0.0])   
+normal = np.array([0.0, 1.0, 0.0])      
+
+base_length_2 = 2.0                       
+base_radius = 0.025                     
+
+youngs_2 = 0.05                           
+poisson_ratio_2 = 0.47                    
 
 """Creates rod object"""
-rod = CosseratRod.straight_rod(
+steel_rod = CosseratRod.straight_rod(
     n_elem,
-    start,
+    start_1,
     direction,
     normal,
-    base_length,
+    base_length_1,
     base_radius,
-    density,
+    density_1,
     nu,
     E,
-    youngs,
-    poisson_ratio,
+    youngs_1,
+    poisson_ratio_1,
 )
 
-"""Adds rod to simulator"""
-simulator.append(rod)
+rubber_rod = CosseratRod.straight_rod(
+    n_elem,
+    start_2,
+    direction,
+    normal,
+    base_length_2,
+    base_radius,
+    density_2,
+    nu,
+    E,
+    youngs_2,
+    poisson_ratio_2,
+)
 
-# make constrained_director empty
-simulator.constrain(rod).using(
+"""Adds both rods to simulator"""
+hinge_simulator.append(rubber_rod)
+hinge_simulator.append(steel_rod)
+
+
+hinge_simulator.constrain(steel_rod).using(
     OneEndFixedRod, constrained_position_idx=(0,), constrained_director_idx=None
 )
 
+hinge_simulator.connect(
+    first_rod=steel_rod, second_rod=rubber_rod, first_connect_idx=-1, second_connect_idx=0
+).using(HingeJoint, k=1e5, nu=0, kt=5e3, normal_direction=roll_direction
+) # 1e-2
+
+
 """Adds gravity force to rod"""
 gravity_force = np.array([0.0, 0.0, -9.8])
-simulator.add_forcing_to(rod).using(
+hinge_simulator.add_forcing_to(rubber_rod).using(
     GravityForces,
     gravity_force,
 )
+
+hinge_simulator.add_forcing_to(steel_rod).using(
+    GravityForces,
+    gravity_force,
+)
+
 
 print("Gravity forces added to the rod")
 
@@ -100,15 +126,15 @@ print("Gravity forces added to the rod")
 # )
 
 """Adds torque to rod"""
-torque = 9.0
-direction = np.array([0.0, -1.0, 0.0])
-simulator.add_forcing_to(rod).using(
-    TorqueInterval,
-    torque=torque,
-    direction=direction,
-    time_start=0.0,
-    time_end=0.5
-)
+# torque = 3.0
+# direction = np.array([0.0, -1.0, 0.0])
+# hinge_simulator.add_forcing_to(steel_rod).using(
+#     TorqueInterval,
+#     torque=torque,
+#     direction=direction,
+#     time_start=0.0,
+#     time_end=0.5
+# )
 
 
 
@@ -132,7 +158,6 @@ class DynamicPendulum(CallBackBaseClass):
 
             self.callback_params["x_max"].append(max(positions[0]))
             self.callback_params["x_min"].append(min(positions[0]))
-
             self.callback_params["y_max"].append(max(positions[1]))
             self.callback_params["y_min"].append(min(positions[1]))
 
@@ -140,14 +165,19 @@ class DynamicPendulum(CallBackBaseClass):
             self.callback_params["z_min"].append(min(positions[2])) 
             return
 
-data_dict = defaultdict(list)
-simulator.collect_diagnostics(rod).using(
-    DynamicPendulum, step_skip=200, callback_params=data_dict
+rubber_data = defaultdict(list)
+steel_data = defaultdict(list)
+
+hinge_simulator.collect_diagnostics(steel_rod).using(
+    DynamicPendulum, step_skip=200, callback_params=steel_data
+)
+hinge_simulator.collect_diagnostics(rubber_rod).using(
+    DynamicPendulum, step_skip=200, callback_params=rubber_data
 )
 
 print("Callback function added to the simulator")
 
-simulator.finalize()
+hinge_simulator.finalize()
 
 final_time = 2.0
 dt = 0.0001
@@ -156,11 +186,10 @@ print("Total steps to take", total_steps)
 
 timestepper = PositionVerlet()
 
-integrate(timestepper, simulator, final_time, total_steps)
+integrate(timestepper, hinge_simulator, final_time, total_steps)
 
 filename_video = "rubber_rod_torque.mp4"
-plot_video_3D(data_dict, video_name=filename_video, fps=125, margins=0.2)
-
+plot_video_3D(steel_data, rubber_data, video_name=filename_video, fps=125, margins=0.2)
 
 
 
