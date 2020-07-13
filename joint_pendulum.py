@@ -9,7 +9,7 @@ from elastica.wrappers import BaseSystemCollection, Constraints, Forcing, CallBa
 from elastica.rod.cosserat_rod import CosseratRod
 from elastica.boundary_conditions import OneEndFixedRod
 from elastica.joint import FreeJoint, HingeJoint, FixedJoint
-from elastica.external_forces import GravityForces, UniformForces, EndpointForces, UniformTorques, TorqueInterval
+from elastica.external_forces import GravityForces, UniformForces, EndpointForces, UniformTorques
 
 """Call back functions - for saving state information during simulation"""
 from elastica.callback_functions import CallBackBaseClass
@@ -19,6 +19,7 @@ from elastica.timestepper.symplectic_steppers import PositionVerlet
 from elastica.timestepper import integrate
 
 from post_processing_joint import plot_video_3D
+from classes import TorqueInterval
 
 """Combine all of the wrappers"""
 class Simulator(BaseSystemCollection, Constraints, Forcing, CallBacks, Connections): 
