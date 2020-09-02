@@ -26,7 +26,7 @@ def get_default():
     config.env.crawler_1d.segm_dist = 1.0
     config.env.crawler_1d.segm_mass = 1.0
     config.env.crawler_1d.time_step = 0.01
-    config.env.crawler_1d.spring_const = 5.0
+    config.env.crawler_1d.spring_const = 3.0
     config.env.crawler_1d.epoch_steps = 1000
     config.env.crawler_1d.friction_type = 'coulomb_aniso'
     config.env.crawler_1d.f_f = 0.001
